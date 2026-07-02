@@ -285,7 +285,20 @@ textarea:focus-visible {
   display: flex;
   align-items: center;
   gap: 8px;
+  border-radius: 10px;
 }
+
+.nav-surface {
+  cursor: pointer;
+  transition: opacity .16s ease, transform .16s ease, box-shadow .16s ease;
+}
+
+.nav-surface:focus-visible {
+  outline: 2px solid rgba(66, 107, 82, 0.35);
+  outline-offset: 4px;
+}
+
+.nav-surface:active { opacity: 0.72; transform: scale(.992); }
 
 .brand-head .brand-mini {
   width: 30px;
@@ -293,7 +306,9 @@ textarea:focus-visible {
   object-fit: contain;
 }
 
-.brand-head .caption { display: block; line-height: 16px; }
+.brand-head > div { display: flex; align-items: center; }
+.brand-head .logo-sm { line-height: 30px; }
+.brand-head .caption { display: none; }
 
 /* Shared controls and surfaces */
 .topbar {
@@ -563,6 +578,7 @@ textarea:focus-visible {
 .pet-choice .photo,
 .pet-choice .pet-illustration { width: 124px; height: 92px; align-self: start; border-radius: 14px; }
 .pet-choice .photo img { object-position: center 48%; }
+.pet-choice .pet-no-photo img { object-position: 61% 52%; }
 .pet-copy { min-width: 0; padding-top: 9px; text-align: left; }
 .pet-copy .h3 { font-size: 16px; line-height: 22px; text-align: left; }
 .pet-copy .caption { font-size: 12.5px; line-height: 18px; text-align: left; }

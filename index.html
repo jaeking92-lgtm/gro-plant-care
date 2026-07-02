@@ -103,7 +103,7 @@ function login(){return shell(`${status()}<div class="login-wrap"><img class="lo
 function intro(){return shell(`${status()}<div class="intro-wrap"><div class="intro-bg">${photo(A+'intro-plant.jpg')}</div><img class="leaf-decor leaf-a" src="${A}leaf-sprig.png" alt="" aria-hidden="true"/><img class="leaf-decor leaf-b" src="${A}leaf-monstera.png" alt="" aria-hidden="true"/><div class="intro-main"><div class="brand-splash intro-brand"><img class="brand-icon" src="${A}logo-gro.png" alt="GRO logo"/><div class="brand-copy"><p class="logo">GRO</p><span class="logo-sub">plant care</span></div></div><p class="body mt20" style="color:#334338">식물과 함께,<br/>더 나은 하루를 키워요.</p></div><div class="intro-copy"><button class="btn" data-nav="direction">시작하기</button></div></div>`) }
 function direction(){const sel=state.answers.direction;return shell(`${header('주로 햇빛이 드는<br/>창문 방향은 어디인가요?','식물이 받는 빛의 방향을 선택해 주세요.',1,'intro')}<div class="scroll safe-cta"><div class="content mt18"><div class="scene-large">${photo(directions[sel].img,directions[sel].label)}<div class="scene-label"><b>${directions[sel].label}</b><span>${directions[sel].desc}</span></div></div><div class="choice-grid mt16">${Object.entries(directions).map(([k,d])=>`<button class="choice-card ${sel===k?'selected':''}" data-answer="direction" data-value="${k}" aria-pressed="${sel===k}"><div class="photo"><img src="${d.thumb}" alt="${d.short} 창문 예시"/></div><span class="label">${d.short}</span></button>`).join('')}</div></div></div><div class="fixed-cta"><button class="btn" data-nav="place">다음</button></div>`) }
 function place(){const sel=state.answers.place;return shell(`${header('식물을 주로 어디에서<br/>키우고 있나요?','가장 오래 머무는 공간을 선택해 주세요.',2,'direction')}<div class="scroll safe-cta"><div class="content mt18"><div class="choice-grid">${Object.entries(places).map(([k,p])=>`<button class="choice-card ${sel===k?'selected':''}" data-answer="place" data-value="${k}" aria-pressed="${sel===k}">${photo(p.img,p.label)}<div><span class="label">${p.label}</span><div class="sub">${p.desc}</div></div></button>`).join('')}</div></div></div><div class="fixed-cta"><button class="btn" data-nav="pet">다음</button></div>`) }
-function pet(){const sel=state.answers.pet;return shell(`${header('반려동물과 함께<br/>생활하고 계신가요?','안전한 식물을 추천하기 위해 선택해 주세요.',3,'place')}<div class="scroll safe-cta"><div class="content mt20 col" style="gap:14px"><button class="pet-choice ${sel==='yes'?'selected':''}" data-answer="pet" data-value="yes" aria-pressed="${sel==='yes'}"><div class="photo"><img src="${A}pet-yes.jpg" alt="반려동물과 함께 생활하는 공간"/></div><div class="pet-copy"><p class="h3">네, 함께 살고 있어요</p><p class="caption mt4">반려동물 안전까지 고려</p></div><span class="radio" aria-hidden="true"></span></button><button class="pet-choice ${sel==='no'?'selected':''}" data-answer="pet" data-value="no" aria-pressed="${sel==='no'}"><div class="pet-illustration" aria-hidden="true">${icon('plant')}</div><div class="pet-copy"><p class="h3">아니요, 반려동물이 없어요</p><p class="caption mt4">빛과 관리 난이도 중심</p></div><span class="radio" aria-hidden="true"></span></button></div></div><div class="fixed-cta"><button class="btn" data-nav="water">다음</button></div>`) }
+function pet(){const sel=state.answers.pet;return shell(`${header('반려동물과 함께<br/>생활하고 계신가요?','안전한 식물을 추천하기 위해 선택해 주세요.',3,'place')}<div class="scroll safe-cta"><div class="content mt20 col" style="gap:14px"><button class="pet-choice ${sel==='yes'?'selected':''}" data-answer="pet" data-value="yes" aria-pressed="${sel==='yes'}"><div class="photo"><img src="${A}pet-yes.jpg" alt="반려동물과 함께 생활하는 공간"/></div><div class="pet-copy"><p class="h3">네, 함께 살고 있어요</p><p class="caption mt4">반려동물 안전까지 고려</p></div><span class="radio" aria-hidden="true"></span></button><button class="pet-choice ${sel==='no'?'selected':''}" data-answer="pet" data-value="no" aria-pressed="${sel==='no'}"><div class="photo pet-no-photo"><img src="${A}pet-no.png" alt="반려동물 없이 식물을 키우는 공간"/></div><div class="pet-copy"><p class="h3">아니요, 반려동물이 없어요</p><p class="caption mt4">빛과 관리 난이도 중심</p></div><span class="radio" aria-hidden="true"></span></button></div></div><div class="fixed-cta"><button class="btn" data-nav="water">다음</button></div>`) }
 function water(){const sel=state.answers.water;const opts=[['often','leaf','sprout','자주 줄 수 있어요','주 2회 이상 물을 줄 수 있어요'],['normal','water','drop','보통이에요','주 1회 정도가 적당해요'],['rare','calendar','calendar','가끔 잊어버려요','10일에 한 번 정도가 돼요'],['forget','dry','dry','자주 잊는 편이에요','2주에 한 번 정도예요']];return shell(`${header('평소 물을 얼마나 자주<br/>주실 수 있나요?','관리 루틴을 맞추기 위해 선택해 주세요.',4,'pet')}<div class="scroll safe-cta"><div class="content mt20 col" style="gap:12px">${opts.map(([k,cls,ic,t,s])=>`<button class="water-option ${cls} ${sel===k?'selected':''}" data-answer="water" data-value="${k}" aria-pressed="${sel===k}"><span class="water-icon" aria-hidden="true">${icon(ic)}</span><div class="water-copy"><p class="h3">${t}</p><p class="caption mt2">${s}</p></div><span class="radio" aria-hidden="true"></span></button>`).join('')}</div></div><div class="fixed-cta"><button class="btn" data-nav="recommend">다음</button></div>`) }
 function recommendationProfile(id){
   const profiles={
@@ -229,7 +229,34 @@ function addRecord(){
 }
 function records(){const p=plants[state.selectedPlant];const hasRecords=state.records.length>0;return shell(`${status()}<div class="scroll safe-tab"><div class="content"><div class="topbar"><button class="back" data-nav="home" aria-label="홈으로 돌아가기">${icon('back')}</button><div style="text-align:center"><h1 class="h3">성장 기록</h1><p class="caption mt4">${p.name} 관찰 노트</p></div><button class="iconbtn" aria-label="성장 기록 추가" data-add-record="1">${icon('plus')}</button></div>${hasRecords?`<section class="card month-card mt10"><div class="month-head"><button class="iconbtn is-disabled" aria-label="이전 주 기록" aria-disabled="true" data-toast="이전 주 기록은 준비 중이에요">${icon('back')}</button><p class="h3">첫 주 기록</p><button class="iconbtn is-disabled" aria-label="다음 주 기록" aria-disabled="true" data-toast="다음 주 기록은 준비 중이에요" style="transform:rotate(180deg)">${icon('back')}</button></div><div class="record-grid">${state.records.slice(0,5).map(r=>`<div class="record-tile"><div class="photo"><img src="${r.img}" alt="${recordDateLabel(r)}의 ${p.name}"/></div><div class="date">${recordDateLabel(r)}</div></div>`).join('')}<button class="record-tile record-add" data-add-record="1">${icon('plus')}<span>기록 추가</span></button></div></section>`:`<section class="empty-record mt14"><div class="empty-illustration">${icon('growth')}</div><h2 class="h2">아직 성장 기록이 없어요</h2><p class="body mt8">첫 사진을 남기면 ${state.plantName}의 변화가 이곳에 차곡차곡 쌓여요.</p><button class="btn-light" data-add-record="1">첫 기록 추가</button></section><div class="record-guide-grid"><div class="record-guide">${icon('cam')}<b>사진</b><span>오늘 모습</span></div><div class="record-guide">${icon('leaf')}<b>잎 상태</b><span>색과 크기</span></div><div class="record-guide">${icon('sun')}<b>컨디션</b><span>빛과 물</span></div></div><div class="empty-timeline"><div class="timeline-head"><b>첫 주 기록 흐름</b><span>1일차 준비</span></div><div class="timeline-dots"><i></i><i></i><i></i><i></i><i></i></div></div>`}<div class="record-summary stronger mt16">${icon('leaf')}<p>사진을 남기면 잎 색, 크기, 컨디션 변화를 한눈에 볼 수 있어요.</p></div></div></div>`,true)}
 function profile(){return shell(`${status()}<div class="scroll safe-tab"><div class="content"><div class="topbar"><h1 class="h2">내 정보</h1><button class="iconbtn" aria-label="설정" data-toast="설정 저장 완료">${icon('menu')}</button></div><section class="card profile-card"><div class="row gap12"><div class="profile-avatar logo-avatar"><img src="${A}logo-gro.png" alt="GRO logo"/></div><div><p class="h3">GRO 사용자</p><p class="caption mt4">오늘부터 식물 루틴을 시작해요</p></div></div></section><section class="card mt16" style="padding:16px"><p class="h3">저장 설정</p><p class="body mt8">선택한 식물, 오늘 관리 상태와 기록이 이 브라우저에 저장돼요.</p></section><button class="btn-light mt16" data-reset="1">저장 상태 초기화</button><button class="btn-light mt10" data-logout="1">로그아웃</button></div></div>`,true)}
-function render(){if(!state.isLoggedIn) state.screen='login';if(state.screen==='profile') state.screen='home';const views={login,intro,direction,place,pet,water,recommend,register,home,plant,editPlant,today,records,addRecord};qs('app').innerHTML=(views[state.screen]||intro)();const scroll=qs('app').querySelector('.scroll');if(scroll)scroll.scrollTop=0}
+function makeNavTarget(element,screen,label){
+  if(!element)return;
+  element.dataset.nav=screen;
+  element.classList.add('nav-surface');
+  element.setAttribute('role','button');
+  element.setAttribute('tabindex','0');
+  element.setAttribute('aria-label',label);
+}
+function connectScreenNavigation(){
+  makeNavTarget(qs('app').querySelector('.brand-head'),'home','홈 화면으로 이동');
+  if(state.screen==='home'){
+    makeNavTarget(qs('app').querySelector('.home-card .plant-profile'),'plant','등록한 식물 정보 보기');
+    makeNavTarget(qs('app').querySelector('.week')?.closest('.card'),'records','이번 주 성장 기록 보기');
+    makeNavTarget(qs('app').querySelector('.home-insight'),'today','오늘 관리 화면으로 이동');
+  }
+  if(state.screen==='plant'){
+    makeNavTarget(qs('app').querySelector('.routine-card'),'today','오늘 관리 루틴 확인하기');
+  }
+}
+function render(){
+  if(!state.isLoggedIn) state.screen='login';
+  if(state.screen==='profile') state.screen='home';
+  const views={login,intro,direction,place,pet,water,recommend,register,home,plant,editPlant,today,records,addRecord};
+  qs('app').innerHTML=(views[state.screen]||intro)();
+  connectScreenNavigation();
+  const scroll=qs('app').querySelector('.scroll');
+  if(scroll)scroll.scrollTop=0;
+}
 
 function validateLogin(form){
   const emailInput=form.querySelector('[data-login-email]');
@@ -335,6 +362,13 @@ document.addEventListener('click',e=>{
   if(toast){showToast(toast.dataset.toast);return}
   const reset=e.target.closest('[data-reset]');
   if(reset){resetState();render();showToast('초기화했어요')}
+});
+
+document.addEventListener('keydown',e=>{
+  const navTarget=e.target.closest?.('[role="button"][data-nav]');
+  if(!navTarget||!['Enter',' '].includes(e.key))return;
+  e.preventDefault();
+  nav(navTarget.dataset.nav);
 });
 
 document.addEventListener('input',e=>{
