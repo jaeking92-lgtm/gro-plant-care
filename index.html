@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" /> 
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GRO · Plant Care</title>
+<meta name="theme-color" content="#FFFCF7" />
+<link rel="icon" type="image/png" href="assets/logo-gro.png" />
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pretendard/1.3.9/static/pretendard-dynamic-subset.min.css" crossorigin="anonymous" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div class="device"><main class="phone"><div id="app"></div><div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div></main></div>
+<script>
+const A='assets/';
+const STORE='gro-component-app-v16-polished-empty-states';
+['gro-component-app-v1','gro-component-app-v2','gro-component-app-v3','gro-component-app-v4','gro-component-app-v5','gro-component-app-v6','gro-component-app-v7','gro-component-app-v8-login','gro-component-app-v10-no-profile','gro-component-app-v11-final-flow','gro-component-app-v12-reference-clean','gro-component-app-v13-polished-first-run','gro-component-app-v14-real-logo','gro-component-app-v15-font-system'].forEach(k=>localStorage.removeItem(k));
+const todayLabel='오늘';
+const defaultState={screen:'login',isLoggedIn:false,isGuest:false,userEmail:'',answers:{direction:'south',place:'living',pet:'no',water:'normal'},selectedPlant:'mint',plantName:'우리집 초록이',tasks:{water:false,sun:false,record:false},records:[],recordDraft:{condition:'좋음',memo:'',img:''}};
+let state=loadState();
+state.plantName=normalizePlantName(state.plantName);
+function loadState(){
+ try{
+  const s=JSON.parse(localStorage.getItem(STORE)||'{}');
+  return {...defaultState,...s,answers:{...defaultState.answers,...(s.answers||{})},tasks:{...defaultState.tasks,...(s.tasks||{})},records:Array.isArray(s.records)?s.records:defaultState.records,recordDraft:{...defaultState.recordDraft,...(s.recordDraft||{})}};
+ }catch(e){
+  return {...defaultState,recordDraft:{...defaultState.recordDraft}};
+ }
+}
+function save(){localStorage.setItem(STORE,JSON.stringify({screen:state.screen,isLoggedIn:state.isLoggedIn,isGuest:state.isGuest,userEmail:state.userEmail,answers:state.answers,selectedPlant:state.selectedPlant,plantName:state.plantName,tasks:state.tasks,records:state.records,recordDraft:state.recordDraft}))}
+function resetState(){localStorage.removeItem(STORE);state={...defaultState,answers:{...defaultState.answers},tasks:{...defaultState.tasks},records:[...defaultState.records],recordDraft:{...defaultState.recordDraft}}}
+function qs(id){return document.getElementById(id)}
+function esc(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+function normalizePlantName(v){return String(v??'').replace(/[<>]/g,'').slice(0,12)}
+function recordDateLabel(r){return `${esc(r.date||'오늘')}${r.condition?' · '+esc(r.condition):''}`}
+function showToast(msg){const t=qs('toast');t.textContent=msg;t.classList.add('show');clearTimeout(window.__toast);window.__toast=setTimeout(()=>t.classList.remove('show'),2200)}
+function nav(screen){state.screen=screen==='profile'?'home':screen;save();render()}
+const directions={
+  east:{label:'동향',short:'동향',desc:'아침 빛이 들어와요',img:A+'direction-east.jpg',thumb:A+'direction-east-thumb.jpg'},
+  west:{label:'서향',short:'서향',desc:'오후 빛이 따뜻해요',img:A+'direction-west.jpg',thumb:A+'direction-west-thumb.jpg'},
+  south:{label:'남향',short:'남향',desc:'빛이 오래 머물러요',img:A+'direction-south.jpg',thumb:A+'direction-south-thumb.jpg'},
+  north:{label:'북향',short:'북향',desc:'은은한 간접광이에요',img:A+'direction-north.jpg',thumb:A+'direction-north-thumb.jpg'}
+};
+const places={
+  living:{label:'거실',desc:'가장 밝은 공간',img:A+'place-living.jpg'}, bedroom:{label:'침실',desc:'차분한 공간',img:A+'place-bedroom.jpg'},
+  kitchen:{label:'주방',desc:'허브와 잘 맞아요',img:A+'place-kitchen.jpg'}, office:{label:'서재 / 사무실',desc:'책상 가까이에',img:A+'place-office.jpg'}
+};
+const plants={
+  mint:{name:'애플민트',nickname:'우리집 초록이',img:A+'plant-mint.jpg',tags:['허브','초보자 추천','차 활용'],desc:'향이 좋고 변화가 빠른 허브예요. 밝은 창가와 규칙적인 물주기에 잘 맞아요.'},
+  basil:{name:'바질',nickname:'우리집 바질',img:A+'plant-basil.jpg',tags:['허브','요리 활용','밝은 빛'],desc:'햇빛을 좋아하고 잎의 변화가 빠른 식물이에요. 주방이나 밝은 창가에 잘 어울려요.'},
+  rosemary:{name:'로즈마리',nickname:'향기 로즈마리',img:A+'plant-rosemary.jpg',tags:['향기','건조에 강함','햇빛 선호'],desc:'은은한 향이 오래 남는 허브예요. 물은 조금 덜 자주 주고 밝은 빛을 좋아해요.'}
+};
+const taskMeta={
+  water:{title:'물 주기',time:'07:00',minutes:420,color:'#91B8C5',icon:'water'},
+  sun:{title:'햇빛 비추기',time:'10:30 – 15:30',start:630,end:930,color:'#E3C46D',icon:'sun'},
+  record:{title:'성장 기록',time:'20:30',minutes:1230,color:'#DED3C1',icon:'growth'}
+};
+const taskOrder=['water','sun','record'];
+function icon(name){
+ const s='class="gro-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.58" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" aria-hidden="true"';
+ const map={
+  back:`<svg ${s}><path d="M14.8 18.6 8.2 12l6.6-6.6"/></svg>`,
+  chev:`<svg ${s}><path d="m9.4 5.5 6.1 6.5-6.1 6.5"/></svg>`,
+  check:`<svg ${s}><path d="M5.1 12.3 9.2 16.4 19 7"/></svg>`,
+  checkMini:`<svg ${s}><path d="M6.2 12.2 10 15.8 18.2 7.5"/></svg>`,
+  plus:`<svg ${s}><path d="M12 5.2v13.6M5.2 12h13.6"/></svg>`,
+  menu:`<svg ${s}><circle cx="6.8" cy="7.2" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="7.2" r="1.15" fill="currentColor" stroke="none"/><circle cx="17.2" cy="7.2" r="1.15" fill="currentColor" stroke="none"/><circle cx="6.8" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="17.2" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="6.8" cy="16.8" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="16.8" r="1.15" fill="currentColor" stroke="none"/><circle cx="17.2" cy="16.8" r="1.15" fill="currentColor" stroke="none"/></svg>`,
+  home:`<svg ${s}><path d="M4.4 11.2 12 5.1l7.6 6.1"/><path d="M6.6 10.5v8.9h10.8v-8.9"/><path d="M10.2 19.4v-5.1h3.6v5.1"/></svg>`,
+  plant:`<svg ${s}><path d="M12 13.2V6.8"/><path d="M11.8 8.7c-3.3-.1-5.2-2.1-5.3-5 3.3.1 5.3 2.1 5.3 5"/><path d="M12.4 9.7c3.5-.1 5.5-2.2 5.6-5.3-3.5.1-5.5 2.2-5.6 5.3"/><path d="M7.7 13.4h8.6l-.9 6.5H8.6l-.9-6.5Z"/><path d="M7.1 13.4h9.8"/></svg>`,
+  pot:`<svg ${s}><path d="M12 12.6V7.1"/><path d="M11.7 8.5C8.8 8.4 7 6.5 6.8 4.1c3 .1 4.9 1.9 4.9 4.4"/><path d="M12.4 9.1c3.1-.1 5-2 5.2-4.5-3.1.1-5 2-5.2 4.5"/><path d="M7.6 13.1h8.8l-.85 6.6h-7.1l-.85-6.6Z"/><path d="M7.1 13.1h9.8"/></svg>`,
+  today:`<svg ${s}><rect x="5" y="5.6" width="14" height="14.4" rx="3"/><path d="M8.6 4v3.8M15.4 4v3.8M5.2 10h13.6"/><path d="m9.2 15 1.9 1.9 4-4.6"/></svg>`,
+  record:`<svg ${s}><path d="M6.2 19.2V11"/><path d="M12 19.2V6.3"/><path d="M17.8 19.2v-6"/><path d="M4.6 20.2h14.8"/></svg>`,
+  profile:`<svg ${s}><circle cx="12" cy="8.4" r="3.35"/><path d="M5.2 20c1.1-4.5 12.5-4.5 13.6 0"/></svg>`,
+  bell:`<svg ${s}><path d="M18 9.2a6 6 0 0 0-12 0c0 5.7-2.25 6.4-2.25 6.4h16.5S18 15.9 18 9.2"/><path d="M10.3 20h3.4"/></svg>`,
+  cam:`<svg ${s}><path d="M6.2 8.5h2.2l2-3h3.2l2 3h2.2a2.2 2.2 0 0 1 2.2 2.2v8.6H4V10.7a2.2 2.2 0 0 1 2.2-2.2Z"/><circle cx="12" cy="14.2" r="3.35"/></svg>`,
+  heart:`<svg ${s}><path d="M20.4 8.6c0 4.8-8.4 9.9-8.4 9.9S3.6 13.4 3.6 8.6A4.15 4.15 0 0 1 12 6.25a4.15 4.15 0 0 1 8.4 2.35Z"/></svg>`,
+  leaf:`<svg ${s}><path d="M19.3 4.8c-5.7.8-9.8 4.5-9.8 9.1 0 3 2.1 4.95 4.9 4.95 5.1 0 8-6.15 7.7-14-5.2 0-9.45 1.1-12.1 4.55"/><path d="M9.6 14.6c3.1-4 6.3-6.1 9.9-7.4"/></svg>`,
+  mail:`<svg ${s}><rect x="4.4" y="6.5" width="15.2" height="11.4" rx="2.4"/><path d="m5.4 8.1 6.6 5 6.6-5"/></svg>`,
+  lock:`<svg ${s}><rect x="5.6" y="10.2" width="12.8" height="9.2" rx="2.2"/><path d="M8.5 10.1V7.8a3.5 3.5 0 0 1 7 0v2.3"/><path d="M12 14v2.1"/></svg>`,
+  window:`<svg ${s}><rect x="5.2" y="5.6" width="13.6" height="12.4" rx="2.2"/><path d="M12 5.8v12M5.6 11.7h12.8"/><path d="M8.2 20h7.6"/></svg>`,
+  moon:`<svg ${s}><path d="M17.8 15.4A7.3 7.3 0 0 1 8.6 6.2 7.6 7.6 0 1 0 17.8 15.4Z"/><path d="M16.9 4.7l.5 1.2 1.2.5-1.2.5-.5 1.2-.5-1.2-1.2-.5 1.2-.5.5-1.2Z"/></svg>`,
+  growth:`<svg ${s}><path d="M12 19.6v-6"/><path d="M11.7 13.7c-3.35-.1-5.25-2.1-5.35-5.15 3.45.1 5.45 2.1 5.35 5.15"/><path d="M12.6 14.5c3.5-.1 5.45-2.1 5.55-5.3-3.45.1-5.45 2.15-5.55 5.3"/><path d="M6.8 20h5.9"/><path d="m15.6 19.8 3.45-3.45a1.15 1.15 0 0 0-1.62-1.62l-3.45 3.45-.55 2.35 2.17-.73Z"/></svg>`,
+  sprout:`<svg ${s}><path d="M12 20V11.4"/><path d="M11.7 12.3C8 12.2 5.9 9.8 5.7 6.3c3.7.2 6.1 2.2 6 6"/><path d="M12.4 13.3c3.8-.1 6-2.4 6.2-6.1-3.8.2-6.1 2.4-6.2 6.1"/><path d="M8 20h8"/></svg>`,
+  water:`<svg ${s}><path d="M12 3.9c-4.45 5.25-6 8.1-6 11.25a6 6 0 0 0 12 0c0-3.15-1.55-6-6-11.25Z"/><path d="M9.25 16.3c.35 1.35 1.4 2.25 2.75 2.35" opacity=".55"/></svg>`,
+  drop:`<svg ${s}><path d="M12 4.1c-4.2 5.1-5.6 7.7-5.6 10.7a5.6 5.6 0 0 0 11.2 0c0-3-1.4-5.6-5.6-10.7Z"/><path d="M9.6 15.8c.3 1.15 1.15 1.95 2.35 2.05" opacity=".5"/></svg>`,
+  sun:`<svg ${s}><circle cx="12" cy="12" r="3.55"/><path d="M12 3.5v2.5M12 18v2.5M3.5 12h2.5M18 12h2.5M6 6l1.7 1.7M16.3 16.3 18 18M18 6l-1.7 1.7M7.7 16.3 6 18"/></svg>`,
+  calendar:`<svg ${s}><rect x="5" y="5.6" width="14" height="14.5" rx="3"/><path d="M8.5 4v3.7M15.5 4v3.7M5.25 10.2h13.5"/><path d="M8.5 14h2.1M13.4 14h2.1M8.5 17h2.1"/></svg>`,
+  cactus:`<svg ${s}><path d="M12 20V6.9a2.55 2.55 0 1 1 5.1 0v2.75a1.9 1.9 0 0 1-1.9 1.9H15"/><path d="M12 13H9.2a1.9 1.9 0 0 1-1.9-1.9V8.8a2.25 2.25 0 0 0-4.5 0V20"/><path d="M5 20h14"/></svg>`,
+  dry:`<svg ${s}><path d="M6.4 18.6h11.2"/><path d="M12 18.4v-4.5"/><path d="M11.8 14.1c-3.1-.2-5.2-2.2-5.6-5.5 3.3.2 5.4 2.3 5.6 5.5Z"/><path d="M12.5 14.8c2.8-.3 4.7-2.4 5.1-5.4-3.1.2-5.1 2.1-5.1 5.4Z"/><path d="M8.2 5.4c2.9 4.1 7.4 7.3 9.7 11.1" opacity=".55"/></svg>`
+ };
+ return map[name]||map.leaf
+}
+function status(){return `<div class="status"><span>9:41</span><div class="status-icons"><div class="signal"><i></i><i></i><i></i><i></i></div><div class="wifi"></div><div class="battery"></div></div></div>`}
+function shell(inner,tab=false){return `<section class="screen ${tab?'has-tab':''}">${inner}${tab?tabs():''}</section>`}
+function tabs(){const items=[['home','홈','home'],['plant','식물','plant'],['today','오늘','today'],['records','기록','record']];return `<nav class="bottom-tab" aria-label="주요 메뉴">${items.map(([s,l,i])=>`<button class="tab ${state.screen===s?'active':''}" data-nav="${s}" ${state.screen===s?'aria-current="page"':''}>${icon(i)}<span>${l}</span></button>`).join('')}</nav>`}
+function progress(n){return `<div class="progress" role="progressbar" aria-label="온보딩 진행률" aria-valuemin="1" aria-valuemax="4" aria-valuenow="${n}">${[1,2,3,4].map(i=>`<span class="${i<=n?'on':''}"></span>`).join('')}</div>`}
+function header(title,sub,n,back){return `${status()}<div class="content"><div class="topbar"><button class="back" data-nav="${back}" aria-label="이전 화면으로 돌아가기">${icon('back')}</button>${progress(n)}<span class="screen-count">${n}/4</span></div><div class="on-title"><h1 class="h2">${title}</h1><p class="body question-note">${sub}</p></div></div>`}
+function photo(src,alt=''){return `<div class="photo"><img src="${src}" alt="${alt}"/></div>`}
+
+function login(){return shell(`${status()}<div class="login-wrap"><img class="login-leaf a" src="${A}leaf-palm.png" alt="" aria-hidden="true"/><img class="login-leaf b" src="${A}leaf-monstera.png" alt="" aria-hidden="true"/><div class="login-head"><div class="brand-splash"><img class="brand-icon" src="${A}logo-gro.png" alt="GRO logo"/><div class="brand-copy"><p class="logo">GRO</p><span class="logo-sub">plant care</span></div></div><p class="body">식물 루틴을 저장하고<br/>오늘의 관리를 이어가세요.</p></div><form class="login-card" data-login-form novalidate><div class="login-card-header"><div><p class="login-kicker">GRO</p><h1>로그인</h1></div><p class="caption">저장된 루틴 이어보기</p></div><label class="input-field mt16" data-login-field="email">${icon('mail')}<input type="email" data-login-email aria-label="이메일" placeholder="이메일" autocomplete="email" required value="${esc(state.userEmail)}"/></label><label class="input-field mt10" data-login-field="password">${icon('lock')}<input type="password" data-login-password aria-label="비밀번호" placeholder="비밀번호 · 6자 이상" autocomplete="current-password" minlength="6" required/></label><p class="login-error" data-login-error role="alert" aria-live="polite"></p><div class="login-meta"><label class="login-check"><input type="checkbox" checked/><span aria-hidden="true">${icon('checkMini')}</span> 로그인 유지</label><button type="button" class="login-link disabled-link" aria-disabled="true" data-toast="비밀번호 찾기는 MVP 시연용이에요">비밀번호 찾기</button></div><button type="submit" class="btn">로그인하기</button><div class="social-divider"><span>간편 로그인 · 준비 중</span></div><div class="social-row"><button type="button" class="social-btn google-login is-disabled" aria-disabled="true" data-toast="Google 로그인은 준비 중이에요"><img class="social-logo" src="${A}google-logo.png" alt="Google logo"/> Google</button><button type="button" class="social-btn kakao-login is-disabled" aria-disabled="true" data-toast="Kakao 로그인은 준비 중이에요"><img class="social-logo" src="${A}kakao-logo.png" alt="Kakao logo"/> Kakao</button></div></form><button class="guest-btn" data-guest="1">로그인 없이 둘러보기</button><p class="login-footer">계정 없이도 모든 MVP 흐름을 확인할 수 있어요.</p></div>`) }
+
+function intro(){return shell(`${status()}<div class="intro-wrap"><div class="intro-bg">${photo(A+'intro-plant.jpg')}</div><img class="leaf-decor leaf-a" src="${A}leaf-sprig.png" alt="" aria-hidden="true"/><img class="leaf-decor leaf-b" src="${A}leaf-monstera.png" alt="" aria-hidden="true"/><div class="intro-main"><div class="brand-splash intro-brand"><img class="brand-icon" src="${A}logo-gro.png" alt="GRO logo"/><div class="brand-copy"><p class="logo">GRO</p><span class="logo-sub">plant care</span></div></div><p class="body mt20" style="color:#334338">식물과 함께,<br/>더 나은 하루를 키워요.</p></div><div class="intro-copy"><button class="btn" data-nav="direction">시작하기</button></div></div>`) }
+function direction(){const sel=state.answers.direction;return shell(`${header('주로 햇빛이 드는<br/>창문 방향은 어디인가요?','식물이 받는 빛의 방향을 선택해 주세요.',1,'intro')}<div class="scroll safe-cta"><div class="content mt18"><div class="scene-large">${photo(directions[sel].img,directions[sel].label)}<div class="scene-label"><b>${directions[sel].label}</b><span>${directions[sel].desc}</span></div></div><div class="choice-grid mt16">${Object.entries(directions).map(([k,d])=>`<button class="choice-card ${sel===k?'selected':''}" data-answer="direction" data-value="${k}" aria-pressed="${sel===k}"><div class="photo"><img src="${d.thumb}" alt="${d.short} 창문 예시"/></div><span class="label">${d.short}</span></button>`).join('')}</div></div></div><div class="fixed-cta"><button class="btn" data-nav="place">다음</button></div>`) }
+function place(){const sel=state.answers.place;return shell(`${header('식물을 주로 어디에서<br/>키우고 있나요?','가장 오래 머무는 공간을 선택해 주세요.',2,'direction')}<div class="scroll safe-cta"><div class="content mt18"><div class="choice-grid">${Object.entries(places).map(([k,p])=>`<button class="choice-card ${sel===k?'selected':''}" data-answer="place" data-value="${k}" aria-pressed="${sel===k}">${photo(p.img,p.label)}<div><span class="label">${p.label}</span><div class="sub">${p.desc}</div></div></button>`).join('')}</div></div></div><div class="fixed-cta"><button class="btn" data-nav="pet">다음</button></div>`) }
+function pet(){const sel=state.answers.pet;return shell(`${header('반려동물과 함께<br/>생활하고 계신가요?','안전한 식물을 추천하기 위해 선택해 주세요.',3,'place')}<div class="scroll safe-cta"><div class="content mt20 col" style="gap:14px"><button class="pet-choice ${sel==='yes'?'selected':''}" data-answer="pet" data-value="yes" aria-pressed="${sel==='yes'}"><div class="photo"><img src="${A}pet-yes.jpg" alt="반려동물과 함께 생활하는 공간"/></div><div class="pet-copy"><p class="h3">네, 함께 살고 있어요</p><p class="caption mt4">반려동물 안전까지 고려</p></div><span class="radio" aria-hidden="true"></span></button><button class="pet-choice ${sel==='no'?'selected':''}" data-answer="pet" data-value="no" aria-pressed="${sel==='no'}"><div class="pet-illustration" aria-hidden="true">${icon('plant')}</div><div class="pet-copy"><p class="h3">아니요, 반려동물이 없어요</p><p class="caption mt4">빛과 관리 난이도 중심</p></div><span class="radio" aria-hidden="true"></span></button></div></div><div class="fixed-cta"><button class="btn" data-nav="water">다음</button></div>`) }
+function water(){const sel=state.answers.water;const opts=[['often','leaf','sprout','자주 줄 수 있어요','주 2회 이상 물을 줄 수 있어요'],['normal','water','drop','보통이에요','주 1회 정도가 적당해요'],['rare','calendar','calendar','가끔 잊어버려요','10일에 한 번 정도가 돼요'],['forget','dry','dry','자주 잊는 편이에요','2주에 한 번 정도예요']];return shell(`${header('평소 물을 얼마나 자주<br/>주실 수 있나요?','관리 루틴을 맞추기 위해 선택해 주세요.',4,'pet')}<div class="scroll safe-cta"><div class="content mt20 col" style="gap:12px">${opts.map(([k,cls,ic,t,s])=>`<button class="water-option ${cls} ${sel===k?'selected':''}" data-answer="water" data-value="${k}" aria-pressed="${sel===k}"><span class="water-icon" aria-hidden="true">${icon(ic)}</span><div class="water-copy"><p class="h3">${t}</p><p class="caption mt2">${s}</p></div><span class="radio" aria-hidden="true"></span></button>`).join('')}</div></div><div class="fixed-cta"><button class="btn" data-nav="recommend">다음</button></div>`) }
+function recommendationProfile(id){
+  const profiles={
+    mint:{directions:{east:4,south:4,west:3,north:2},places:{living:3,kitchen:4,bedroom:2,office:2},water:{often:4,normal:4,rare:2,forget:1},pet:{yes:1,no:2}},
+    basil:{directions:{east:3,south:5,west:3,north:1},places:{living:3,kitchen:5,bedroom:1,office:2},water:{often:4,normal:3,rare:1,forget:0},pet:{yes:1,no:2}},
+    rosemary:{directions:{east:2,south:4,west:5,north:1},places:{living:3,kitchen:2,bedroom:2,office:4},water:{often:1,normal:3,rare:5,forget:4},pet:{yes:2,no:2}}
+  };
+  return profiles[id];
+}
+function recommendationReason(id){
+  const a=state.answers;
+  const direction=directions[a.direction].short;
+  const place=places[a.place].label;
+  const waterText={often:'자주 물을 줄 수 있는 편',normal:'주 1회 관리',rare:'드문 물주기',forget:'잊어도 버티는 관리'}[a.water];
+  const reasons={
+    mint:`${direction} 빛과 ${place} 환경에서 변화를 빠르게 관찰하기 좋아요.`,
+    basil:`${place}에서 잎을 수확해 쓰기 좋고 밝은 빛을 잘 활용해요.`,
+    rosemary:`${waterText} 성향에 잘 맞고 향이 오래 남는 편이에요.`
+  };
+  return reasons[id];
+}
+function getRecommendations(){
+  return Object.keys(plants).map(id=>{
+    const p=recommendationProfile(id);
+    const score=p.directions[state.answers.direction]+p.places[state.answers.place]+p.water[state.answers.water]+p.pet[state.answers.pet];
+    return {id,score,reason:recommendationReason(id)};
+  }).sort((a,b)=>b.score-a.score||plants[a.id].name.localeCompare(plants[b.id].name,'ko'));
+}
+function selectTopRecommendation(){
+  const top=getRecommendations()[0];
+  if(!top) return;
+  state.selectedPlant=top.id;
+  if(!state.plantName||Object.values(plants).some(p=>p.nickname===state.plantName)) state.plantName=plants[top.id].nickname||plants[top.id].name;
+}
+function recommend(){const recs=getRecommendations();return shell(`${status()}<div class="scroll safe-cta"><div class="content"><div class="topbar"><button class="back" data-nav="water" aria-label="물주기 질문으로 돌아가기">${icon('back')}</button><span></span><span></span></div><h1 class="h2">당신에게 추천하는 식물이에요</h1><p class="body mt6">창문 방향, 공간, 물주기 성향을 점수로 비교했어요.</p><div class="plant-list mt18">${recs.map(({id,score,reason},index)=>{const p=plants[id];return `<button class="plant-card ${state.selectedPlant===id?'selected':''}" data-select-plant="${id}" aria-pressed="${state.selectedPlant===id}"><div class="plant-img photo"><img src="${p.img}" alt="${p.name}"/></div><div class="plant-copy"><h3>${index===0?'추천 1순위 · ':''}${p.name}</h3><div class="tagrow"><span class="pill">적합도 ${score}</span>${p.tags.slice(0,2).map(t=>`<span class="pill">${t}</span>`).join('')}</div><p>${reason}</p></div><span class="arrow" aria-hidden="true">${icon('chev')}</span></button>`}).join('')}</div></div></div><div class="fixed-cta"><button class="btn" data-nav="register">선택한 식물로 시작하기</button></div>`) }
+function register(){const p=plants[state.selectedPlant];const d=directions[state.answers.direction];const place=places[state.answers.place];return shell(`${status()}<div class="scroll safe-cta register-scroll"><div class="content"><div class="topbar"><button class="back" data-nav="recommend" aria-label="추천 식물로 돌아가기">${icon('back')}</button><p class="h3">새로운 식물 등록</p><span style="width:36px"></span></div><div class="register-photo"><img src="${p.img}" alt="${p.name}"/><button class="camera is-disabled" aria-label="식물 사진 변경" aria-disabled="true" data-toast="사진 등록은 준비 중이에요">${icon('cam')}</button></div><label class="caption" for="registerPlantName">식물 이름</label><input id="registerPlantName" class="input mt8" data-name="plantName" maxlength="12" value="${esc(state.plantName)}"/><div class="setup-summary"><div class="setup-chip">${icon('window')}<span class="cap">창문 방향</span><span class="val">${d.short}</span></div><div class="setup-chip">${icon('home')}<span class="cap">관리 장소</span><span class="val">${place.label}</span></div><div class="setup-chip">${icon('water')}<span class="cap">첫 루틴</span><span class="val">07:00 물</span></div></div><section class="register-reason"><div class="register-reason-head"><span class="reason-title">${icon('leaf')}추천 이유</span><span class="reason-score">환경 적합</span></div><p><strong>${p.name}</strong>은 ${d.desc} ${place.label} 환경에 잘 맞고, 첫 식물로 변화를 관찰하기 쉬워요.</p><div class="reason-list"><div class="reason-mini"><b>빛</b><span>${d.short} 창가</span></div><div class="reason-mini"><b>관리</b><span>주 1회 체크</span></div><div class="reason-mini"><b>기록</b><span>오늘 1일차</span></div></div></section><div class="register-note mt14">${icon('calendar')}<p>등록하면 오늘부터 물·빛·사진 기록 루틴이 홈과 오늘 관리 화면에 연결돼요.</p></div></div></div><div class="fixed-cta"><button class="btn" data-nav="home">등록하기</button></div>`) }
+function home(){const p=plants[state.selectedPlant];const done=taskOrder.filter(k=>state.tasks[k]).length;const next=nextTask();const displayName=state.plantName||'우리집 초록이';return shell(`${status()}<div class="scroll safe-tab"><div class="content"><div class="topbar"><div class="brand-head"><img class="brand-mini" src="${A}logo-gro.png" alt="GRO logo"/><div><p class="logo-sm">GRO</p><p class="caption" style="color:var(--primary);letter-spacing:.12em">plant care</p></div></div><button class="iconbtn is-disabled" aria-label="알림 설정" aria-disabled="true" data-toast="알림 설정은 준비 중이에요">${icon('bell')}</button></div><section class="card home-card mt10"><div class="plant-profile"><div class="profile-img photo"><img src="${p.img}" alt="${displayName}"/></div><div class="profile-meta"><div class="between"><h2 class="h3">${displayName}</h2><span class="pill">${p.name}</span></div><p class="caption mt6">${p.name} · 오늘 등록했어요</p><div class="stat-row"><span class="stat good">시작 준비</span><span class="stat water">물 ${state.tasks.water?'완료':'대기'}</span><span class="stat sun">빛 ${state.tasks.sun?'완료':'대기'}</span></div></div></div><div class="divider mt18"></div><div class="between mt16"><div><p class="h3">다음 관리</p><p class="caption mt4">${next?taskMeta[next].title+' · '+taskMeta[next].time:'오늘 관리 완료'}</p></div><button class="btn-light" style="width:108px;height:44px" data-nav="today">관리하기</button></div></section><section class="mt22"><div class="between"><p class="h3">이번 주 관리 진행률</p><p class="caption">${done===3?'1/7 완료':'0/7 완료'}</p></div><div class="card mt10" style="padding:16px"><div class="week">${['월','화','수','목','금','토','일'].map((d,i)=>{const isDone=done===3 && i===0;return `<div><div class="weekday">${d}</div><div class="daydot ${isDone?'done':''}">${isDone?icon('checkMini'):''}</div></div>`}).join('')}</div><p class="caption mt12" style="text-align:center">${done===3?'오늘 관리가 첫 기록으로 저장돼요':'첫 관리를 완료하면 이번 주 기록이 시작돼요'}</p></div></section><section class="mt22"><p class="h3">빠른 관리</p><div class="quick-grid mt12"><button class="quick water" data-nav="today">${icon('water')}<span>물 주기</span></button><button class="quick sun" data-nav="today">${icon('sun')}<span>햇빛 비추기</span></button><button class="quick record" data-nav="records">${icon('record')}<span>성장 기록</span></button><button class="quick" data-nav="plant">${icon('plant')}<span>식물 정보</span></button></div></section><section class="home-insight mt18"><span class="home-insight-icon">${icon('leaf')}</span><div><b>오늘의 관리 포인트</b><span>${next?taskMeta[next].time+'에 '+taskMeta[next].title+'를 확인해요.':'오늘 루틴을 모두 마쳤어요.'}</span></div><span class="pill">루틴</span></section></div></div>`,true) }
+function plant(){const p=plants[state.selectedPlant];const d=directions[state.answers.direction];const place=places[state.answers.place];const displayName=esc(state.plantName)||'우리집 초록이';const petSafe=state.answers.pet==='yes'?'반려동물이 잎을 씹지 않도록 높은 선반이나 분리된 공간을 권장해요.':'식물 중심으로 빛과 관리 난이도에 맞춰 추천했어요.';return shell(`${status()}<div class="scroll safe-tab"><div class="content"><div class="topbar"><h1 class="h2">식물 정보</h1><button class="iconbtn is-disabled" aria-label="즐겨찾기" aria-disabled="true" data-toast="즐겨찾기는 준비 중이에요">${icon('heart')}</button></div><section class="card home-card"><div class="plant-profile"><div class="profile-img photo"><img src="${p.img}" alt="${displayName}"/></div><div class="profile-meta"><h2 class="h3">${displayName}</h2><p class="caption mt4">${p.name} · 오늘 등록했어요</p><p class="caption mt4">${place.label}에서 관리 중</p><div class="tagrow mt10">${p.tags.map(t=>`<span class="pill">${t}</span>`).join('')}</div></div></div><div class="divider mt18"></div><p class="body mt14">${p.desc}</p><div class="edit-row"><p class="caption">식물 이름과 기본 정보를 수정할 수 있어요.</p><button class="text-link" data-nav="editPlant">${icon('menu')}편집</button></div></section><div class="info-grid"><div class="info-card">${icon('window')}<b>${d.label} 창가</b><span>${d.desc}</span></div><div class="info-card">${icon('home')}<b>${place.label}</b><span>${place.desc}</span></div><div class="info-card">${icon('water')}<b>주 1회 체크</b><span>흙 표면이 마르면 물 주기</span></div><div class="info-card">${icon('heart')}<b>안전 메모</b><span>${petSafe}</span></div></div><section class="routine-card mt18"><p class="h3">오늘 루틴</p><div class="routine-list"><div class="routine-item"><span class="mini-icon">${icon('water')}</span><div><b>흙 상태 확인</b><span>손끝으로 표면 건조 체크</span></div><span class="routine-time">07:00</span></div><div class="routine-item"><span class="mini-icon">${icon('sun')}</span><div><b>빛 위치 확인</b><span>직사광이 강하면 한 발 뒤로</span></div><span class="routine-time">10:30</span></div><div class="routine-item"><span class="mini-icon">${icon('growth')}</span><div><b>첫 사진 기록</b><span>오늘 상태를 한 장 남기기</span></div><span class="routine-time">20:30</span></div></div></section></div></div>`,true)}
+function editPlant(){const p=plants[state.selectedPlant];return shell(`${status()}<div class="scroll safe-cta"><div class="content"><div class="topbar"><button class="back" data-nav="plant" aria-label="식물 정보로 돌아가기">${icon('back')}</button><p class="h3">식물 편집</p><span style="width:36px"></span></div><section class="form-card mt18"><div class="record-preview"><div class="photo"><img src="${p.img}" alt="${p.name}"/></div><div><b>${p.name}</b><span>홈과 기록에 표시되는 이름을 바꿔보세요.</span></div></div></section><section class="form-card mt14"><label class="form-label" for="editPlantName">식물 이름</label><input id="editPlantName" class="input" data-name="plantName" maxlength="12" value="${esc(state.plantName)}"/><p class="caption mt8">최대 12자까지 입력할 수 있어요.</p></section><section class="form-card mt14"><p class="h3">연결된 루틴</p><div class="routine-list"><div class="routine-item"><span class="mini-icon">${icon('water')}</span><div><b>물 주기</b><span>07:00 · 오늘 관리에 표시</span></div></div><div class="routine-item"><span class="mini-icon">${icon('sun')}</span><div><b>햇빛 확인</b><span>10:30 - 15:30 · 위치 체크</span></div></div></div></section></div></div><div class="fixed-cta"><button class="btn" data-nav="plant">저장하기</button></div>`) }
+function angle(minutes){return minutes/1440*Math.PI*2-Math.PI/2}
+function pt(cx,cy,r,minutes){const a=angle(minutes);return [cx+r*Math.cos(a),cy+r*Math.sin(a)]}
+function arcPath(cx,cy,r,start,end){const p1=pt(cx,cy,r,start),p2=pt(cx,cy,r,end);const large=(end-start)>720?1:0;return `M ${p1[0].toFixed(2)} ${p1[1].toFixed(2)} A ${r} ${r} 0 ${large} 1 ${p2[0].toFixed(2)} ${p2[1].toFixed(2)}`}
+function clockIcon(type,done,color){const name=done?'checkMini':type==='record'?'moon':type;return icon(name).replace('<svg ',`<svg x="-9" y="-9" width="18" height="18" style="color:${color}" `)}
+function clockBadge(minutes,type,done,r=112){
+  const [x,y]=pt(160,160,r,minutes);
+  const palette=done
+    ?{fill:'url(#clockDoneGradient)',icon:'#5F9A78',border:'#CFE4D5'}
+    :{
+      water:{fill:'url(#clockWaterGradient)',icon:'#4F91A5',border:'#C9E2EA'},
+      sun:{fill:'url(#clockSunGradient)',icon:'#B98716',border:'#EED89D'},
+      record:{fill:'url(#clockRecordGradient)',icon:'#7964A8',border:'#DCD4EC'}
+    }[type];
+  return `<g transform="translate(${x.toFixed(2)} ${y.toFixed(2)})"><circle class="clock-badge-circle" r="16" fill="${palette.fill}" stroke="${palette.border}" stroke-width="1" filter="url(#clockBadgeShadow)"/>${clockIcon(type,done,palette.icon)}</g>`
+}
+function clockLabel(x,y,text,fill,anchor='middle',size=12,weight=650){return `<text x="${x}" y="${y}" text-anchor="${anchor}" dominant-baseline="middle" fill="${fill}" font-size="${size}" font-weight="${weight}">${text}</text>`}
+function clockTimeLabel(minutes,text,fill,r=126,opts={}){const [x,y]=pt(160,160,r,minutes);return clockLabel((x+(opts.dx||0)).toFixed(1),(y+(opts.dy||0)).toFixed(1),text,fill,opts.anchor||'middle',opts.size||12,opts.weight||650)}
+function nextTask(){return taskOrder.find(k=>!state.tasks[k])}
+function clock(){
+  const n=nextTask();
+  const doneCount=taskOrder.filter(k=>state.tasks[k]).length;
+  const cx=160, cy=160, ringR=116;
+  const arcColor=state.tasks.sun?varColor('success'):taskMeta.sun.color;
+  const ticks=Array.from({length:24}).map((_,i)=>{const min=i*60;const major=i%6===0;const a=pt(cx,cy,major?101:109,min),b=pt(cx,cy,major?121:119,min);return `<line x1="${a[0].toFixed(1)}" y1="${a[1].toFixed(1)}" x2="${b[0].toFixed(1)}" y2="${b[1].toFixed(1)}" stroke="${major?'#426B52':'#D4CABD'}" stroke-width="${major?1.8:.9}" stroke-linecap="round"/>`}).join('');
+  return `<svg class="clock-svg" viewBox="0 0 320 320" role="img" aria-label="오늘 관리 24시간 시계, 물 주기 07시, 햇빛 10시 30분부터 15시 30분, 사진 기록 20시 30분"><defs>
+  <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="5" stdDeviation="5" flood-color="#25342C" flood-opacity=".05"/></filter>
+  <filter id="clockBadgeShadow" x="-45%" y="-45%" width="190%" height="200%"><feDropShadow dx="0" dy="2.5" stdDeviation="2.5" flood-color="#25342C" flood-opacity=".16"/></filter>
+  <linearGradient id="clockWaterGradient" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#F1FAFC"/><stop offset="1" stop-color="#D7EBF1"/></linearGradient>
+  <linearGradient id="clockSunGradient" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#FFF8E7"/><stop offset="1" stop-color="#F3DEA7"/></linearGradient>
+  <linearGradient id="clockRecordGradient" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#F7F4FD"/><stop offset="1" stop-color="#E5E0F2"/></linearGradient>
+  <linearGradient id="clockDoneGradient" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#F0F8F2"/><stop offset="1" stop-color="#DCECE2"/></linearGradient>
+  </defs>
+  <circle cx="${cx}" cy="${cy}" r="132" fill="#FFFEFC" stroke="#F1E9DD" stroke-width="1" filter="url(#softShadow)"/>
+  <circle cx="${cx}" cy="${cy}" r="116" fill="none" stroke="#EEE6DA" stroke-width="10"/>
+  <circle cx="${cx}" cy="${cy}" r="99" fill="none" stroke="#EFE8DD" stroke-width="1"/>
+  ${ticks}
+  ${clockLabel(160,19,'00:00','#596A61','middle',11,700)}
+  ${clockLabel(316,160,'06:00','#596A61','end',11,700)}
+  ${clockLabel(160,304,'12:00','#596A61','middle',11,700)}
+  ${clockLabel(4,160,'18:00','#596A61','start',11,700)}
+  <path d="${arcPath(cx,cy,ringR,taskMeta.sun.start,taskMeta.sun.end)}" fill="none" stroke="${arcColor}" stroke-width="6.2" stroke-linecap="round"/>
+  ${clockBadge(taskMeta.sun.start,'sun',state.tasks.sun,ringR)}
+  ${clockBadge(taskMeta.sun.end,'sun',state.tasks.sun,ringR)}
+  ${clockBadge(taskMeta.record.minutes,'record',state.tasks.record,ringR)}
+  ${clockBadge(taskMeta.water.minutes,'water',state.tasks.water,ringR)}
+  ${clockLabel(291,213,'07:00','#4F91A5','end',11.5,750)}
+  ${clockLabel(228,286,'10:30','#B8871F','middle',11.5,750)}
+  ${clockLabel(48,252,'15:30','#B8871F','middle',11.5,750)}
+  ${clockLabel(62,75,'20:30',state.tasks.record?'#5F9A78':'#69806F','middle',11.5,750)}
+  <circle cx="${cx}" cy="${cy}" r="62" fill="#F8F3EB" stroke="#EEE5D8"/>
+  <text x="${cx}" y="151" text-anchor="middle" font-size="13" font-weight="600" fill="#6F766F">오늘 루틴</text>
+  <text x="${cx}" y="180" text-anchor="middle" font-size="24" font-weight="800" fill="#426B52">${doneCount}/3</text>
+</svg>`}
+function varColor(key){return getComputedStyle(document.documentElement).getPropertyValue('--'+key).trim()||'#5F9A78'}
+function missionReward(id){
+  const done=state.tasks[id];
+  if(done) return `<span class="mission-reward done">${icon('checkMini')}완료</span>`;
+  if(id==='sun') return `<span class="mission-reward running">${icon('today')}확인 필요</span>`;
+  if(id==='record') return `<span class="mission-reward wait">${icon('record')}기록 예정</span>`;
+  return `<span class="mission-reward wait">대기</span>`;
+}
+function missionRow(id){
+  const data={
+    water:{period:'오전 루틴',title:'흙 상태 확인하고 물 주기',range:'07:00',icon:'water',klass:'morning'},
+    sun:{period:'낮 루틴',title:'햇빛 위치 확인하기',range:'10:30 – 15:30',icon:'sun',klass:'day'},
+    record:{period:'저녁 루틴',title:'오늘의 사진 기록하기',range:'20:30',icon:'moon',klass:'night'}
+  }[id];
+  return `<button class="mission-row ${state.tasks[id]?'done':''}" data-task="${id}" aria-pressed="${state.tasks[id]}">
+    <span class="mission-icon ${data.klass}">${icon(data.icon)}</span>
+    <span class="mission-copy">
+      <span class="mission-label">${data.period}</span>
+      <span class="mission-name">${data.title}</span>
+      <span class="mission-time ${id==='water'?'water':id==='sun'?'sun':'record'}">${data.range}</span>
+    </span>
+    ${missionReward(id)}
+  </button>`;
+}
+function today(){const done=taskOrder.filter(k=>state.tasks[k]).length;return shell(`${status()}<div class="scroll safe-tab"><div class="content today-content"><div class="topbar"><div class="brand-head"><img class="brand-mini" src="${A}logo-gro.png" alt="GRO logo"/><div><p class="logo-sm">GRO</p><p class="caption" style="color:var(--primary);letter-spacing:.12em">plant care</p></div></div><button class="iconbtn is-disabled" aria-label="오늘 관리 알림" aria-disabled="true" data-toast="오늘 알림 상세는 준비 중이에요">${icon('bell')}</button></div><h1 class="h1 mt8">오늘 관리</h1><p class="body mt6">${state.plantName}의 물·빛·기록 루틴을 확인해보세요.</p><section class="card clock-card today-clock">${clock()}</section><section class="mission-card today-mission"><div class="mission-head"><div><p class="mission-title">${icon('leaf')}오늘의 관리 루틴</p><p class="caption mt4">시간대별 루틴을 하나씩 완료해보세요</p></div><p class="mission-sub">${done}/3<br/>완료</p></div>${['water','sun','record'].map(missionRow).join('')}</section></div></div>`,true)}
+function addRecord(){
+  const p=plants[state.selectedPlant];
+  const draft=state.recordDraft;
+  const conditions=[['좋음','sun','잎과 줄기가 건강해요'],['보통','leaf','평소와 비슷해요'],['관찰 필요','heart','변화를 더 지켜볼게요']];
+  return shell(`${status()}<div class="scroll safe-cta"><div class="content"><div class="topbar"><button class="back" data-nav="records" aria-label="성장 기록으로 돌아가기">${icon('back')}</button><h1 class="h3">새 성장 기록</h1><span style="width:40px"></span></div><section class="form-card mt14"><label class="record-photo-picker"><input type="file" accept="image/*" capture="environment" data-record-photo/><span class="record-upload ${draft.img?'has-photo':''}">${draft.img?`<img src="${esc(draft.img)}" alt="업로드한 오늘의 식물 사진"/><span class="record-photo-action">${icon('cam')}사진 바꾸기</span>`:`<span class="record-upload-icon">${icon('cam')}</span><b>오늘의 식물 사진 추가</b><small>카메라 또는 앨범에서 선택해 주세요</small>`}</span></label><p class="caption mt10">성장 기록에는 직접 촬영한 사진이 저장돼요.</p></section><section class="form-card mt14"><p class="form-label">오늘 상태</p><div class="condition-row">${conditions.map(([value,ic,desc])=>`<button class="condition-chip ${draft.condition===value?'selected':''}" data-condition="${value}" aria-pressed="${draft.condition===value}">${icon(ic)}<span>${value}</span><small>${desc}</small></button>`).join('')}</div></section><section class="form-card mt14"><label class="form-label" for="recordMemo">관찰 메모 <span>선택</span></label><textarea id="recordMemo" class="textarea" data-record-memo maxlength="120" placeholder="새 잎, 잎 색, 흙 상태처럼 오늘 발견한 변화를 적어보세요.">${esc(draft.memo)}</textarea><p class="caption mt8">최대 120자까지 기록할 수 있어요.</p></section></div></div><div class="fixed-cta"><button class="btn" data-save-record ${draft.img?'':'disabled'}>${draft.img?'오늘 기록 저장하기':'사진을 추가해 주세요'}</button></div>`) 
+}
+function records(){const p=plants[state.selectedPlant];const hasRecords=state.records.length>0;return shell(`${status()}<div class="scroll safe-tab"><div class="content"><div class="topbar"><button class="back" data-nav="home" aria-label="홈으로 돌아가기">${icon('back')}</button><div style="text-align:center"><h1 class="h3">성장 기록</h1><p class="caption mt4">${p.name} 관찰 노트</p></div><button class="iconbtn" aria-label="성장 기록 추가" data-add-record="1">${icon('plus')}</button></div>${hasRecords?`<section class="card month-card mt10"><div class="month-head"><button class="iconbtn is-disabled" aria-label="이전 주 기록" aria-disabled="true" data-toast="이전 주 기록은 준비 중이에요">${icon('back')}</button><p class="h3">첫 주 기록</p><button class="iconbtn is-disabled" aria-label="다음 주 기록" aria-disabled="true" data-toast="다음 주 기록은 준비 중이에요" style="transform:rotate(180deg)">${icon('back')}</button></div><div class="record-grid">${state.records.slice(0,5).map(r=>`<div class="record-tile"><div class="photo"><img src="${r.img}" alt="${recordDateLabel(r)}의 ${p.name}"/></div><div class="date">${recordDateLabel(r)}</div></div>`).join('')}<button class="record-tile record-add" data-add-record="1">${icon('plus')}<span>기록 추가</span></button></div></section>`:`<section class="empty-record mt14"><div class="empty-illustration">${icon('growth')}</div><h2 class="h2">아직 성장 기록이 없어요</h2><p class="body mt8">첫 사진을 남기면 ${state.plantName}의 변화가 이곳에 차곡차곡 쌓여요.</p><button class="btn-light" data-add-record="1">첫 기록 추가</button></section><div class="record-guide-grid"><div class="record-guide">${icon('cam')}<b>사진</b><span>오늘 모습</span></div><div class="record-guide">${icon('leaf')}<b>잎 상태</b><span>색과 크기</span></div><div class="record-guide">${icon('sun')}<b>컨디션</b><span>빛과 물</span></div></div><div class="empty-timeline"><div class="timeline-head"><b>첫 주 기록 흐름</b><span>1일차 준비</span></div><div class="timeline-dots"><i></i><i></i><i></i><i></i><i></i></div></div>`}<div class="record-summary stronger mt16">${icon('leaf')}<p>사진을 남기면 잎 색, 크기, 컨디션 변화를 한눈에 볼 수 있어요.</p></div></div></div>`,true)}
+function profile(){return shell(`${status()}<div class="scroll safe-tab"><div class="content"><div class="topbar"><h1 class="h2">내 정보</h1><button class="iconbtn" aria-label="설정" data-toast="설정 저장 완료">${icon('menu')}</button></div><section class="card profile-card"><div class="row gap12"><div class="profile-avatar logo-avatar"><img src="${A}logo-gro.png" alt="GRO logo"/></div><div><p class="h3">GRO 사용자</p><p class="caption mt4">오늘부터 식물 루틴을 시작해요</p></div></div></section><section class="card mt16" style="padding:16px"><p class="h3">저장 설정</p><p class="body mt8">선택한 식물, 오늘 관리 상태와 기록이 이 브라우저에 저장돼요.</p></section><button class="btn-light mt16" data-reset="1">저장 상태 초기화</button><button class="btn-light mt10" data-logout="1">로그아웃</button></div></div>`,true)}
+function render(){if(!state.isLoggedIn) state.screen='login';if(state.screen==='profile') state.screen='home';const views={login,intro,direction,place,pet,water,recommend,register,home,plant,editPlant,today,records,addRecord};qs('app').innerHTML=(views[state.screen]||intro)();const scroll=qs('app').querySelector('.scroll');if(scroll)scroll.scrollTop=0}
+
+function validateLogin(form){
+  const emailInput=form.querySelector('[data-login-email]');
+  const passwordInput=form.querySelector('[data-login-password]');
+  const error=form.querySelector('[data-login-error]');
+  const email=emailInput.value.trim();
+  const password=passwordInput.value;
+  form.querySelectorAll('.input-field').forEach(field=>field.classList.remove('invalid'));
+  emailInput.removeAttribute('aria-invalid');
+  passwordInput.removeAttribute('aria-invalid');
+  let input=null;
+  let message='';
+  if(!email){input=emailInput;message='이메일을 입력해 주세요.'}
+  else if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){input=emailInput;message='올바른 이메일 형식으로 입력해 주세요.'}
+  else if(!password){input=passwordInput;message='비밀번호를 입력해 주세요.'}
+  else if(password.length<6){input=passwordInput;message='비밀번호는 6자 이상 입력해 주세요.'}
+  if(input){
+    input.setAttribute('aria-invalid','true');
+    input.closest('.input-field').classList.add('invalid');
+    error.textContent=message;
+    input.focus();
+    return null;
+  }
+  error.textContent='';
+  return email;
+}
+
+function compressRecordPhoto(file){
+  return new Promise((resolve,reject)=>{
+    if(!file||!file.type.startsWith('image/')){reject(new Error('사진 파일만 선택할 수 있어요.'));return}
+    const url=URL.createObjectURL(file);
+    const img=new Image();
+    img.onload=()=>{
+      const max=900;
+      const scale=Math.min(1,max/Math.max(img.width,img.height));
+      const canvas=document.createElement('canvas');
+      canvas.width=Math.max(1,Math.round(img.width*scale));
+      canvas.height=Math.max(1,Math.round(img.height*scale));
+      const ctx=canvas.getContext('2d');
+      ctx.fillStyle='#FFFCF7';
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.drawImage(img,0,0,canvas.width,canvas.height);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL('image/jpeg',.8));
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('사진을 불러오지 못했어요.'))};
+    img.src=url;
+  });
+}
+
+document.addEventListener('submit',e=>{
+  const form=e.target.closest('[data-login-form]');
+  if(!form)return;
+  e.preventDefault();
+  const email=validateLogin(form);
+  if(!email)return;
+  state.isLoggedIn=true;
+  state.isGuest=false;
+  state.userEmail=email;
+  nav('intro');
+  showToast('로그인 완료');
+});
+
+document.addEventListener('click',e=>{
+  const guest=e.target.closest('[data-guest]');
+  if(guest){state.isLoggedIn=true;state.isGuest=true;state.userEmail='guest@gro.app';nav('intro');showToast('비회원으로 시작했어요');return}
+  const logout=e.target.closest('[data-logout]');
+  if(logout){resetState();render();showToast('로그아웃했어요');return}
+  const navBtn=e.target.closest('[data-nav]');
+  if(navBtn){if(navBtn.dataset.nav==='recommend'&&state.screen==='water')selectTopRecommendation();nav(navBtn.dataset.nav);return}
+  const ans=e.target.closest('[data-answer]');
+  if(ans){state.answers[ans.dataset.answer]=ans.dataset.value;save();render();return}
+  const plant=e.target.closest('[data-select-plant]');
+  if(plant){state.selectedPlant=plant.dataset.selectPlant;state.plantName=plants[state.selectedPlant].nickname||plants[state.selectedPlant].name;save();render();return}
+  const task=e.target.closest('[data-task]');
+  if(task){state.tasks[task.dataset.task]=!state.tasks[task.dataset.task];save();render();return}
+  const condition=e.target.closest('[data-condition]');
+  if(condition){
+    state.recordDraft.condition=condition.dataset.condition;
+    save();
+    document.querySelectorAll('[data-condition]').forEach(button=>{
+      const selected=button===condition;
+      button.classList.toggle('selected',selected);
+      button.setAttribute('aria-pressed',String(selected));
+    });
+    return;
+  }
+  const add=e.target.closest('[data-add-record]');
+  if(add){if(state.records.some(r=>r.date==='오늘')){showToast('오늘 기록은 이미 추가됐어요');return}nav('addRecord');return}
+  const saveRecord=e.target.closest('[data-save-record]');
+  if(saveRecord){
+    if(!state.recordDraft.img){showToast('먼저 오늘의 사진을 추가해 주세요');return}
+    if(state.records.some(r=>r.date==='오늘')){showToast('오늘 기록은 이미 추가됐어요');nav('records');return}
+    state.records.unshift({date:'오늘',img:state.recordDraft.img,condition:state.recordDraft.condition,memo:state.recordDraft.memo.trim()});
+    state.tasks.record=true;
+    state.recordDraft={condition:'좋음',memo:'',img:''};
+    save();
+    nav('records');
+    showToast('오늘의 성장 기록을 저장했어요');
+    return;
+  }
+  const toast=e.target.closest('[data-toast]');
+  if(toast){showToast(toast.dataset.toast);return}
+  const reset=e.target.closest('[data-reset]');
+  if(reset){resetState();render();showToast('초기화했어요')}
+});
+
+document.addEventListener('input',e=>{
+  if(e.target.matches('[data-name="plantName"]')){state.plantName=normalizePlantName(e.target.value);save();return}
+  if(e.target.matches('[data-record-memo]')){state.recordDraft.memo=e.target.value;save();return}
+  if(e.target.matches('[data-login-email],[data-login-password]')){
+    e.target.removeAttribute('aria-invalid');
+    e.target.closest('.input-field')?.classList.remove('invalid');
+    const error=document.querySelector('[data-login-error]');
+    if(error)error.textContent='';
+  }
+});
+
+document.addEventListener('change',async e=>{
+  if(!e.target.matches('[data-record-photo]'))return;
+  const file=e.target.files?.[0];
+  if(!file)return;
+  try{
+    const picker=e.target.closest('.record-photo-picker');
+    picker?.classList.add('loading');
+    state.recordDraft.img=await compressRecordPhoto(file);
+    save();
+    render();
+    showToast('사진을 추가했어요');
+  }catch(error){
+    showToast(error.message||'사진을 추가하지 못했어요');
+  }
+});
+window.__GRO_APP__={get state(){return state},nav,render};
+render();
+</script>
+</body>
+</html>

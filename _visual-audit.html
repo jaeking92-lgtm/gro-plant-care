@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>html,body,iframe{width:100%;height:100%;margin:0;border:0;overflow:hidden}body{display:flex;justify-content:center;background:#eef1ed}iframe{display:block;flex:0 0 auto}</style>
+</head>
+<body>
+<iframe id="preview" title="GRO 화면 검수 미리보기"></iframe>
+<script>
+const params=new URLSearchParams(location.search);
+const frame=document.getElementById('preview');
+if(params.get('width'))frame.style.width=`${params.get('width')}px`;
+frame.addEventListener('load',()=>{
+  const app=frame.contentWindow.__GRO_APP__;
+  if(!app)return;
+  const state=app.state;
+  state.isLoggedIn=true;
+  state.isGuest=true;
+  state.tasks.water=false;
+  state.tasks.sun=false;
+  state.tasks.record=false;
+  state.records.splice(0);
+  state.plantName='향기 로즈마리';
+  state.selectedPlant='rosemary';
+  state.answers.direction='south';
+  state.answers.place='living';
+  if(params.get('records')==='filled'){
+    state.records.push({date:'오늘',img:'assets/plant-rosemary.jpg'});
+    state.tasks.record=true;
+  }
+  app.nav(params.get('screen')||'login');
+  app.render();
+});
+frame.src='index.html';
+</script>
+</body>
+</html>
